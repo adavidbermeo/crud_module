@@ -1,0 +1,300 @@
+<?php
+
+/**
+* @file
+* Custom functions for CRUD module.
+*/
+
+/**
+* Implements hook_menu().
+*/
+function crud_module_menu(){
+
+    $items['admin/custom/crud_module/add'] = array(
+        'title' => 'Crud Custom Table',
+        'description' => 'View Crud Custom Table.',
+        'page callback' => 'crud_module_block_view',
+        'access arguments' => array('access crud_module'),
+        'weight' => -14,
+    );
+
+    $items['admin/custom/crud_module/%/edit'] = array(
+        'title' => 'Crud Custom Table',
+        'description' => 'View Crud Custom Table.',
+        'page callback' => 'crud_module_edit_block_view',
+        'page argument' => array(3),
+        'access arguments' => array('access crud_module'),
+        'weight' => -14,
+    );
+
+    $items['admin/custom/crud_module/%/delete'] = array(
+        'title' => 'Crud Custom Table',
+        'description' => 'View Crud Custom Table.',
+        'page callback' => 'crud_table_delete',
+        'page argument' => array(3),
+        'access arguments' => array('access crud_module'),
+        'weight' => -14,
+    );
+
+    $items['admin/custom/crud_module'] = array(
+        'title' => 'Crud Custom Table',
+        'description' => 'View Crud Custom Table.',
+        'page callback' => 'crud_module_sort_with_pager_content',
+        'access arguments' => array('access crud_module'),
+        'weight' => -14,
+    );
+
+    return $items;
+
+}
+
+/**
+* Implements hook_block_view().
+*/
+function crud_module_block_view($block_name = ""){
+
+    /* Front page validation */
+    if (drupal_is_front_page()){
+        return NULL;
+    }
+
+    $form = drupal_get_form('crud_module_form');
+    $block = array(
+        // 'subject' => t('Subject'),
+        'content' => $form,
+    );
+
+    return $block;
+}
+
+/**
+ * Custom form to insert data
+ */
+function crud_module_form($form, &$form_state){
+
+    // now I add a text field to the form
+    $form['crud_module_title'] = array(
+        '#type' => 'textfield',
+        '#title' => t('Title'),
+        '#description' => t('The Title of the Crud Custom Table.'),
+        '#size' => 40,
+        '#maxlength' => 120,
+        '#required' => TRUE,
+    );
+
+    // Textarea for the body
+    $form['crud_module_description'] = array(
+        '#type' => 'textarea',
+        '#rows' => 10,
+        '#columns' => 40,
+        '#title' => t('Description'),
+        '#required' => TRUE,
+        '#description'=> t('The text of Crud Custom Table .'),
+    );
+
+    // Checkbox to indicate.
+    $form['crud_module_status'] = array(
+        '#type' => 'checkbox',
+        '#title' => t('Status'),
+        '#description' => t("Indicates whether the active or inactive."),
+    );
+    // now I add also a button
+    $form['submit'] = array(
+        '#type' => 'submit',
+        '#value' => t('Save'),
+    );
+    // and now I assign a my function as handler of the submit event
+    // $form['#validate'][] = 'crud_module_submit_handler';
+    $form['#submit'][] = 'crud_module_submit_handler';
+
+    return $form;
+}
+
+function crud_module_submit_handler($form, &$form_state){
+    /* This function will be executed after the click
+     event of the user on the “submit” button. */
+    $error = 1;
+    if ( !isset($form_state['values']['crud_module_title']) || !isset($form_state['values']['crud_module_title']) ) {
+        $error = 0 ;
+    }
+
+    if($error){
+        $crud_module_title = $form_state['values']['crud_module_title'];
+        $crud_module_description = $form_state['values']['crud_module_description'];
+        $nid = db_insert('crud_custom_table') 
+        ->fields(array(
+        'title' => $crud_module_title,
+        'description' => $crud_module_description,
+        ))
+        ->execute();
+        drupal_set_message(t('Record has been added!'));
+    }
+}
+
+function crud_module_sort_with_pager_content() {
+    $header = array(
+    array('data' => t('Custom id'), 'field' => 'id', 'sort' => 'asc'),
+    array('data' => t('Title'), 'field' => 'title'),
+    array('data' => t('Status'), 'field' => 'status'),
+    array('data' => t('Action')),
+    );
+
+    $query = db_select('crud_custom_table', 'c');
+    $query->fields('c', array('id', 'title', 'status'));
+
+    $table_sort = $query->extend('TableSort') // Add table sort extender.
+    ->orderByHeader($header); // Add order by headers.
+    $pager = $table_sort->extend('PagerDefault')
+    ->limit(5);
+    $result = $pager->execute();
+
+    $rows = array();
+    foreach($result as $res){
+        $rows[] = array($res->id, $res->title, $res->status, '<a href="/admin/custom/crud_module/'. $res->id .'/edit"> Edit </a> | <a href="/admin/custom/crud_module/'. $res->id .'/delete"> Delete </a>');
+    }
+
+    // If rows are not empty theme and display the rows.
+    if (!empty($rows)) {
+        $output = theme('table', array('header' => $header, 'rows' => $rows, 'attributes' => array('id' => 'sort-table')));
+        $output .= theme('pager');
+    }
+    else {
+        @$output .= t("No results found.");
+    }
+    $output .= '
+        <br>
+        <div class="add-or-remove-shortcuts">
+            <a href="/admin/custom/crud_module/add"><span class="icon"></span>Add new record</a>
+        </div>';
+
+    return $output;
+}
+
+function crud_table_delete(){
+    $id = arg(3);
+    $num_updated = db_delete('crud_custom_table')
+    ->condition('id', $id, '=')
+    ->execute();
+    drupal_set_message(t('Record has been deleted!'));
+    drupal_goto("admin/custom/crud_module/");
+}
+
+/**
+* Implements hook_block_view().
+*/
+function crud_module_edit_block_view($block_name = ""){
+
+    /* Front page validation */
+    if (drupal_is_front_page()){
+        return NULL;
+    }
+
+    $form = drupal_get_form('crud_module_edit_form');
+    $block = array(
+        // 'subject' => t('Subject'),
+        'content' => $form,
+    );
+    // $block['content'][] .= 'Back to Listing';
+    return $block;
+}
+
+function crud_module_edit_form($form, &$form_state){
+
+    $id = arg(3);
+    $result = db_query('SELECT * FROM {crud_custom_table} WHERE id = :tid', array(':tid' => $id));
+    /* foreach($result as $val){
+    $record = $val;
+    }*/
+    $record = $result->fetchObject();
+
+    // now I add a text field to the form
+    // with a label and fixed dimensions (you never know…)
+    $form['crud_module_title'] = array(
+        '#type' => 'textfield',
+        '#title' => t('Title'),
+        '#value' => t($record->title),
+        '#description' => t('The Title of the Crud Custom Table.'),
+        '#size' => 40,
+        '#maxlength' => 120,
+        '#required' => TRUE,
+    );
+
+    // Textarea for the body
+    $form['crud_module_description'] = array(
+        '#type' => 'textarea',
+        '#rows' => 10,
+        '#columns' => 40,
+        '#title' => t('Description'),
+        '#value' => t($record->description),
+        '#required' => TRUE,
+        '#description'=> t('The text of Crud Custom Table .'),
+    );
+    // hidden for the body
+    $form['id'] = array(
+        '#type' => 'hidden',
+        '#value' => t($id),
+    );
+
+    // Checkbox to indicate.
+    $form['crud_module_status'] = array(
+        '#type' => 'checkbox',
+        '#title' => t('Status'),
+        '#default_value' => t($record->status),
+        '#description' => t("Indicates whether the active or inactive."),
+    );
+    // now I add also a button
+    $form['submit'] = array(
+        '#type' => 'submit',
+        '#value' => t('Save'),
+    );
+    // and now I assign a my function as handler of the submit event
+    // $form['#validate'][] = 'crud_module_submit_handler';
+    $form['#submit'][] = 'crud_module_edit_submit_handler';
+
+    return $form;
+}
+
+function crud_module_edit_submit_handler($form, &$form_state){
+    /* This function will be executed after the click
+     event of the user on the “submit” button.*/
+    $error = 1;
+    if ( !isset($form_state['values']['crud_module_title']) || !isset($form_state['values']['crud_module_title']) ) {
+        $error = 0 ;
+    }
+
+    if($error){
+        $id = $form_state['values']['id'];
+
+        $crud_module_title = $form_state['input']['crud_module_title'];
+        $crud_module_description = $form_state['input']['crud_module_description'];
+        $crud_module_status = $form_state['values']['crud_module_status'];
+
+        $data = array(
+            'title' => $crud_module_title,
+            'description' => $crud_module_description,
+            'status' => $crud_module_status
+        );
+        $num_updated = db_update('crud_custom_table')
+        ->fields($data)
+        ->condition('id', $id, '=')
+        ->execute();
+        drupal_set_message(t('Record has been Updated!'));
+    }
+}
+
+/**
+* Implements hook_permission().
+*/
+function crud_module_permission() {
+    return array(
+        'access crud_module' => array(
+            'title' => t('View Crud Custom Table'),
+            // Note: We translate the 'Administer blocks' permission string here with
+            // a separate t() call, to make sure it gets the same translation as when
+            // it's in block_permission().
+            'description' => t('Customizing the Crud Custom Table requires the !permission-name permission.', array(
+                '!permission-name' => l(t('Administer blocks'), 'admin/people/permissions', array('fragment' => 'module-block')),
+            )),
+        ),
+    );
+}

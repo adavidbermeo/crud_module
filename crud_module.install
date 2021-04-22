@@ -1,0 +1,49 @@
+<?php 
+/** 
+* @file
+ * Schema definitions install/update/uninstall hooks.
+ */ 
+/** 
+* Implements hook_schema().
+ */ function crud_module_schema() {
+ $schema['crud_custom_table'] = array( 
+    'description' => 'The base table for crud_custom_table.',
+    'fields' => array(
+        'id' => array(
+        'description' => 'The primary identifier for a crud_custom_table.',
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+    ),
+    'title' => array(
+        'description' => 'The title of this crud_custom_table, always treated as non-markup plain text.',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => 'NULL',
+    ),
+    'description' => array(
+        'description' => 'The description of this crud_custom_table, always treated as non-markup plain text.',
+        'type' => 'text',
+    ),
+    'status' => array(
+        'description' => 'The status for a crud_custom_table.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => '0',
+        ),
+    ),
+    'primary key' => array('id'),
+    );
+
+    return $schema;
+}
+
+/**
+* Add the crud_custom_table table for the crud_module module.
+*/
+function crud_module_update_7001() {
+    db_create_table('crud_custom_table', drupal_get_schema_unprocessed('crud_module', 'crud_custom_table'));
+    return 'Add the crud_custom_table table for the crud_module module.';
+}
