@@ -2,9 +2,9 @@ name = "Crud Module"
 description = "Custom CRUD module for Drupal 7"
 core = 7.x
 package = "Custom"
-configure = admin/custom/crud_table
+configure = admin/custom/crud_module
 
 version = "7.x-2.0"
 core = "7.x"
-project = "crud_table"
+project = "crud_module"
 datestamp = "1385568677"
